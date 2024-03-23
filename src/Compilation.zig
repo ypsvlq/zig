@@ -174,6 +174,7 @@ global_cache_directory: Directory,
 libc_include_dir_list: []const []const u8,
 libc_framework_dir_list: []const []const u8,
 rc_includes: RcIncludes,
+unicode: bool,
 thread_pool: *ThreadPool,
 
 /// Populated when we build the libc++ static library. A Job to build this is placed in the queue
@@ -759,7 +760,7 @@ pub const MiscTask = enum {
 
     @"mingw-w64 crt2.o",
     @"mingw-w64 dllcrt2.o",
-    @"mingw-w64 mingwex.lib",
+    @"mingw-w64 mingw32.lib",
 };
 
 pub const MiscError = struct {
@@ -1102,6 +1103,7 @@ pub const CreateOptions = struct {
     test_name_prefix: ?[]const u8 = null,
     test_runner_path: ?[]const u8 = null,
     subsystem: ?std.Target.SubSystem = null,
+    unicode: bool = false,
     /// (Zig compiler development) Enable dumping linker's state as JSON.
     enable_link_snapshots: bool = false,
     /// (Darwin) Install name of the dylib
@@ -1430,6 +1432,7 @@ pub fn create(gpa: Allocator, arena: Allocator, options: CreateOptions) !*Compil
             .libc_include_dir_list = libc_dirs.libc_include_dir_list,
             .libc_framework_dir_list = libc_dirs.libc_framework_dir_list,
             .rc_includes = options.rc_includes,
+            .unicode = options.unicode,
             .thread_pool = options.thread_pool,
             .clang_passthrough_mode = options.clang_passthrough_mode,
             .clang_preprocessor_mode = options.clang_preprocessor_mode,
@@ -1771,7 +1774,7 @@ pub fn create(gpa: Allocator, arena: Allocator, options: CreateOptions) !*Compil
 
             const crt_job: Job = .{ .mingw_crt_file = if (is_dyn_lib) .dllcrt2_o else .crt2_o };
             try comp.work_queue.ensureUnusedCapacity(2);
-            comp.work_queue.writeItemAssumeCapacity(.{ .mingw_crt_file = .mingwex_lib });
+            comp.work_queue.writeItemAssumeCapacity(.{ .mingw_crt_file = .mingw32_lib });
             comp.work_queue.writeItemAssumeCapacity(crt_job);
 
             // When linking mingw-w64 there are some import libs we always need.
